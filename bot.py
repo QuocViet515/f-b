@@ -4,6 +4,8 @@ from telegram import Update, InlineKeyboardButton, InlineKeyboardMarkup
 from telegram.ext import Application, CommandHandler, MessageHandler, filters, ContextTypes, CallbackQueryHandler
 from telegram.request import HTTPXRequest
 from dotenv import load_dotenv
+from flask import Flask
+from threading import Thread
 
 # Load environment variables
 load_dotenv()
@@ -12,6 +14,25 @@ load_dotenv()
 OPHIM_API_BASE = "https://ophim1.com/v1/api"
 BOT_TOKEN = os.getenv('TELEGRAM_BOT_TOKEN')
 PROXY_URL = os.getenv('PROXY_URL', None)  # Optional proxy
+
+# Flask app for keep alive (for deployment on Render, etc.)
+app = Flask('')
+
+@app.route('/')
+def home():
+    return "Bot is alive!"
+
+def run_flask():
+    """Chạy Flask server"""
+    app.run(host='0.0.0.0', port=8080)
+
+def keep_alive():
+    """Giữ bot sống bằng cách chạy Flask server trong thread riêng"""
+    t = Thread(target=run_flask)
+    t.daemon = True  # Thread sẽ dừng khi main thread kết thúc
+    t.start()
+    print("✅ Flask web server started on http://0.0.0.0:8080")
+    print("🔗 Use this URL for Uptime Robot to keep bot alive")
 
 class MovieBot:
     def __init__(self):
@@ -665,6 +686,11 @@ def main():
         print("="*60)
         print("🎬 BOT TÌM KIẾM PHIM TELEGRAM")
         print("="*60)
+        
+        # Khởi động Flask server để keep alive (cho deployment)
+        keep_alive()
+        
+        # Khởi động bot
         bot = MovieBot()
         bot.run()
     except Exception as e:
